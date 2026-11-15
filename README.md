@@ -58,8 +58,17 @@ python scripts/consolidar_base_historica_disque100.py
 ```
 
 O script cria `dados/base_historica_2025_2026.parquet`, arquivo utilizado pela
-aplicação. As pastas de origem e o arquivo consolidado são ignorados pelo
-Git por serem dados gerados ou baixados.
+etapa de preparação. Em seguida, gere a base menor usada pelo aplicativo:
+
+```bash
+python scripts/preparar_base_analise_disque100.py
+```
+
+Esse segundo script cria `dados/base_analise_disque100.parquet`, contendo
+apenas as 10 colunas e os registros necessários para os painéis. Esse arquivo
+menor é versionado para permitir a publicação no Streamlit Community Cloud,
+enquanto as pastas de origem e a base consolidada permanecem ignoradas pelo
+Git.
 
 ## Estrutura do projeto
 
@@ -67,7 +76,8 @@ Git por serem dados gerados ou baixados.
 .
 ├── app.py                         # Entrada da aplicação Streamlit
 ├── scripts/                       # Preparação e consolidação dos dados
-│   └── consolidar_base_historica_disque100.py
+│   ├── consolidar_base_historica_disque100.py
+│   └── preparar_base_analise_disque100.py
 ├── paineis/                       # Seções exibidas no menu lateral
 │   ├── escolha_base_de_dados.py
 │   ├── procedimento_de_selecao.py

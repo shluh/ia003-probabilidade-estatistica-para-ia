@@ -6,3 +6,4 @@ __pycache__/
 .ipynb_checkpoints/
 dados/*.parquet
 dados/*_parquet/
+!dados/base_analise_disque100.parquet

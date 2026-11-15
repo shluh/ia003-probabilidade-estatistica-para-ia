@@ -114,7 +114,7 @@ def carregar_dados() -> pd.DataFrame:
     caminho_dados = (
         Path(__file__).parent
         / "dados"
-        / "base_historica_2025_2026.parquet"
+        / "base_analise_disque100.parquet"
     )
     return pd.read_parquet(caminho_dados)
 
