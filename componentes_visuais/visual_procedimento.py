@@ -117,7 +117,7 @@ def render(
 
     st.header("Como a amostra foi selecionada")
     st.markdown(
-        """
+        f"""
         <ol class="editorial-copy">
         <li>Foram identificados os valores válidos e únicos do campo
         <code>hash</code>.</li>

@@ -210,6 +210,6 @@ elif pagina == "Painel Descritivo" and subpainel_descritivo == "População":
         ),
     )
 elif pagina == "Painel Descritivo" and subpainel_descritivo == "Amostra":
-    render_amostra(df_amostra, metadados_amostra)
+    render_amostra(df_amostra, metadados_amostra, df_filtrado)
 elif pagina == "Hipóteses formuladas":
     render_inferencia(df_filtrado, df_amostra)
