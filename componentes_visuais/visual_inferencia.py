@@ -1,3 +1,4 @@
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -20,6 +21,142 @@ def _decimal(valor: float) -> str:
 
 def _p_valor(valor: float) -> str:
     return "<0,0001" if valor < 0.00005 else f"{valor:.4f}".replace(".", ",")
+
+
+def _exibir_mapa_de_calor(df_populacao: pd.DataFrame) -> None:
+    st.header("Faixa etária e tipos de violação")
+    st.caption(
+        "Registros por faixa etária da vítima e tipo específico de violação, "
+        "agrupado pelo nome final da classificação."
+    )
+
+    dados = df_populacao[
+        ["Faixa_etária_da_vítima", "violacao"]
+    ].copy()
+    for coluna in dados.columns:
+        dados[coluna] = dados[coluna].astype("string").str.strip()
+
+    dados = dados[
+        dados["Faixa_etária_da_vítima"].notna()
+        & dados["violacao"].notna()
+        & dados["Faixa_etária_da_vítima"].ne("")
+        & dados["violacao"].ne("")
+        & ~dados["Faixa_etária_da_vítima"].str.upper().isin(
+            [
+                "CRIANÇA/ADOLESCENTE IDADE NÃO INFORMADA",
+                "NÃO INFORMADO",
+            ]
+        )
+    ].copy()
+
+    if dados.empty:
+        st.info("Não há dados válidos para construir o mapa de calor.")
+        return
+
+    dados["Tipo de violação"] = (
+        dados["violacao"].str.split(">").str[-1].str.strip()
+    )
+    top_violacoes = (
+        dados["Tipo de violação"].value_counts().head(10).index.tolist()
+    )
+    dados = dados[dados["Tipo de violação"].isin(top_violacoes)]
+
+    matriz = (
+        dados.groupby(["Faixa_etária_da_vítima", "Tipo de violação"])
+        .size()
+        .reset_index(name="Registros")
+        .rename(columns={"Faixa_etária_da_vítima": "Faixa etária"})
+    )
+
+    ordem_idades = [
+        "RECÉM-NASCIDO (ATÉ 28 DIAS)",
+        "MENOS DE 01 ANO",
+        "01 ANO",
+        "02 ANOS",
+        "03 ANOS",
+        "04 ANOS",
+        "05 ANOS",
+        "06 ANOS",
+        "07 ANOS",
+        "08 ANOS",
+        "09 ANOS",
+        "10 ANOS",
+        "11 ANOS",
+        "12 ANOS",
+        "13 ANOS",
+        "14 ANOS",
+        "15 ANOS",
+        "16 ANOS",
+        "17 ANOS",
+    ]
+    idades_presentes = matriz["Faixa etária"].unique().tolist()
+    idades_ordenadas = [
+        idade for idade in ordem_idades if idade in idades_presentes
+    ]
+    idades_ordenadas.extend(
+        idade for idade in idades_presentes if idade not in idades_ordenadas
+    )
+
+    grade = pd.MultiIndex.from_product(
+        [idades_ordenadas, top_violacoes],
+        names=["Faixa etária", "Tipo de violação"],
+    ).to_frame(index=False)
+    matriz = grade.merge(
+        matriz,
+        on=["Faixa etária", "Tipo de violação"],
+        how="left",
+    )
+    matriz["Registros"] = matriz["Registros"].fillna(0).astype(int)
+
+    grafico = (
+        alt.Chart(matriz)
+        .mark_rect(cornerRadius=3, stroke="#FAF9F6", strokeWidth=2)
+        .encode(
+            x=alt.X(
+                "Tipo de violação:N",
+                title="Tipo de violação (nome final)",
+                sort=top_violacoes,
+                axis=alt.Axis(
+                    labelAngle=-45,
+                    labelLimit=300,
+                    labelFontSize=13,
+                    labelPadding=8,
+                    labelOverlap=False,
+                ),
+            ),
+            y=alt.Y(
+                "Faixa etária:N",
+                title="Faixa etária da vítima",
+                sort=idades_ordenadas,
+                axis=alt.Axis(
+                    labelFontSize=13,
+                    domain=False,
+                    ticks=False,
+                ),
+            ),
+            color=alt.Color(
+                "Registros:Q",
+                title="Registros",
+                scale=alt.Scale(
+                    range=["#F3E7DE", "#D97757", "#843F2B"]
+                ),
+            ),
+            tooltip=[
+                alt.Tooltip("Faixa etária:N"),
+                alt.Tooltip("Tipo de violação:N"),
+                alt.Tooltip("Registros:Q"),
+            ],
+        )
+        .properties(height=700)
+        .configure_view(strokeWidth=0)
+        .configure_axis(labelColor="#302C29", titleColor="#302C29")
+    )
+    st.altair_chart(grafico, use_container_width=True)
+    st.caption(
+        "As classificações são agrupadas pelo nome final; nomes iguais em "
+        "caminhos diferentes são somados. Cada célula representa a "
+        "quantidade de registros."
+    )
 
 
 def _hipotese(
@@ -85,6 +222,9 @@ def render(df_populacao: pd.DataFrame, df_amostra: pd.DataFrame) -> None:
         "estatística em prova absoluta.</p>",
         unsafe_allow_html=True,
     )
+
+    _exibir_mapa_de_calor(df_populacao)
+    st.divider()
 
     eventos_pop = _evento_proporcoes(df_populacao)
     eventos_amostra = _evento_proporcoes(df_amostra)
